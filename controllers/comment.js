@@ -64,7 +64,7 @@ exports.deleteComment = async (req, res) => {
     }
 
     const isOwner = comment.author.toString() === req.user.id;
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === 'admin'; // ✅ now works with isAdmin mapping
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to delete this comment' });
@@ -73,6 +73,7 @@ exports.deleteComment = async (req, res) => {
     await comment.deleteOne();
     res.json({ message: 'Comment deleted successfully' });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Error deleting comment' });
   }
 };
