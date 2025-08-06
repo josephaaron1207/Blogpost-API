@@ -9,4 +9,4 @@ router.post('/', auth.verify, postController.createPost);
 router.put('/:id', auth.verify, postController.updatePost);
 router.delete('/:id', auth.verify, auth.isAdmin, postController.deletePost);
 
-module.exports = router;
+module.exports = router; 
