@@ -1,53 +1,78 @@
 const Comment = require('../models/Comment');
-const Post = require('../models/Post');
 
-exports.createComment = async (req, res) => {
-  const { content, postId } = req.body;
-  const comment = new Comment({ content, postId });
-  await comment.save();
-  const post = await Post.findById(postId);
-  post.comments.push(comment._id);
-  await post.save();
-  res.send({ message: 'Comment created successfully' });
-};
-
+// Get comments for a post
 exports.getComments = async (req, res) => {
-  const comments = await Comment.find().populate('postId');
-  res.send(comments);
+  try {
+    const comments = await Comment.find({ post: req.params.postId })
+      .populate('author', 'email');
+    res.json(comments);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching comments' });
+  }
 };
 
-exports.getComment = async (req, res) => {
-  const id = req.params.id;
-  const comment = await Comment.findById(id).populate('postId');
-  res.send(comment);
+// Add a comment
+exports.addComment = async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    const comment = new Comment({
+      content,
+      author: req.user.id,
+      post: req.params.postId,
+    });
+
+    await comment.save();
+    const populated = await comment.populate('author', 'email');
+
+    res.status(201).json(populated);
+  } catch (err) {
+    res.status(500).json({ message: 'Error adding comment' });
+  }
 };
 
+// Edit comment (owner only)
 exports.updateComment = async (req, res) => {
-  const id = req.params.id;
-  const { content } = req.body;
-  const comment = await Comment.findByIdAndUpdate(id, { content }, { new: true });
-  res.send(comment);
+  try {
+    const { content } = req.body;
+    const comment = await Comment.findOneAndUpdate(
+      { _id: req.params.commentId, author: req.user.id },
+      { content },
+      { new: true }
+    ).populate('author', 'email');
+
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found or not authorized' });
+    }
+
+    res.json(comment);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating comment' });
+  }
 };
 
+// Delete comment (owner or admin)
 exports.deleteComment = async (req, res) => {
-  const id = req.params.id;
-  await Comment.findByIdAndRemove(id);
-  res.send({ message: 'Comment deleted successfully' });
-};
-
-//[SECTION] Delete comment
-module.exports.deleteComment = async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
+
     if (!comment) {
-      return res.status(404).send({ message: "Comment not found" });
+      return res.status(404).json({ message: 'Comment not found' });
     }
-    if (comment.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(401).send({ message: "You are not authorized to delete this comment" });
+
+    const isOwner = comment.author.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to delete this comment' });
     }
-    await comment.remove();
-    res.send({ message: "Comment deleted successfully" });
+
+    await comment.deleteOne();
+    res.json({ message: 'Comment deleted successfully' });
   } catch (err) {
-    res.status(400).send({ message: "Error deleting comment" });
+    res.status(500).json({ message: 'Error deleting comment' });
   }
 };
