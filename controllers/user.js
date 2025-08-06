@@ -6,8 +6,11 @@ exports.registerUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Normalize email
+    const emailNormalized = email.trim().toLowerCase();
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: emailNormalized });
     if (existingUser) {
       return res.status(400).json({ error: "Email already exists" });
     }
@@ -16,11 +19,12 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
-    const newUser = new User({ email, password: hashedPassword });
+    const newUser = new User({ email: emailNormalized, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({ message: "Registered successfully" });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ error: "Registration failed" });
   }
 };
@@ -29,42 +33,46 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find the user by email
-    const user = await User.findOne({ email });
+    // Normalize email
+    const emailNormalized = email.trim().toLowerCase();
+
+    // Find the user by normalized email
+    const user = await User.findOne({ email: emailNormalized });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     // Create JWT payload
     const payload = {
       id: user._id,
-      role: user.role || 'user'
+      role: user.role || "user"
     };
 
     // Sign token
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', {
-      expiresIn: '1d', // token valid for 1 day
+    const token = jwt.sign(payload, process.env.JWT_SECRET || "secretkey", {
+      expiresIn: "1d",
     });
 
     res.json({
-      message: 'Login successful',
+      message: "Login successful",
       token,
       user: {
         id: user._id,
         email: user.email,
-        role: user.role || 'user',
+        role: user.role || "user",
         firstName: user.firstName,
-        lastName: user.lastName
-      }
+        lastName: user.lastName,
+      },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error during login' });
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error during login" });
   }
 };
+
