@@ -10,13 +10,15 @@ const commentRoutes = require("./routes/comment"); // ✅ new import
 const app = express();
 app.use(express.json());
 
+// ✅ Updated CORS config
 const corsOptions = {
   origin: [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://your-frontend.onrender.com",
+    "https://blogpost-client-sage.vercel.app", // ✅ your Vercel frontend
   ],
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 };
 
 app.use(cors(corsOptions));
