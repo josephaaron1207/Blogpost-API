@@ -33,8 +33,11 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // find user
-    const user = await User.findOne({ email });
+    // normalize email
+    const emailNormalized = email.trim().toLowerCase();
+
+    // find user by normalized email
+    const user = await User.findOne({ email: emailNormalized });
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -47,17 +50,18 @@ exports.loginUser = async (req, res) => {
 
     // create token
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, isAdmin: user.isAdmin }, // <-- include isAdmin here
       JWT_SECRET,
       { expiresIn: '1h' }
     );
 
+    // respond with token and user info (include isAdmin)
     res.json({
       token,
       user: {
         id: user._id,
         email: user.email,
-        role: user.role,   // ✅ include role
+        isAdmin: user.isAdmin,   // <-- include isAdmin here
       },
     });
   } catch (err) {
