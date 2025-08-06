@@ -12,32 +12,118 @@ module.exports.checkEmailExists = (req, res) => {
 
 //[SECTION] User registration
 module.exports.registerUser = async (req, res) => {
-  const { email, username, password } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = new User({ email, username, password: hashedPassword });
   try {
+    const { email, username, password } = req.body;
+
+    // Basic validation
+    if (!email || !username || !password) {
+      return res.status(400).json({ 
+        message: "Email, username, and password are required" 
+      });
+    }
+
+    // Additional validation
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        message: "Password must be at least 8 characters long" 
+      });
+    }
+
+    if (username.length < 3) {
+      return res.status(400).json({ 
+        message: "Username must be at least 3 characters long" 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      $or: [
+        { email: email.toLowerCase().trim() }, 
+        { username: username.trim() }
+      ] 
+    });
+    
+    if (existingUser) {
+      const field = existingUser.email === email.toLowerCase().trim() ? 'Email' : 'Username';
+      return res.status(400).json({ 
+        message: `${field} already exists. Please choose a different one.` 
+      });
+    }
+
+    // Hash password and create user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ 
+      email: email.toLowerCase().trim(), 
+      username: username.trim(), 
+      password: hashedPassword 
+    });
+    
     await user.save();
-    res.send({ message: "User registered successfully" });
+    
+    res.status(201).json({ 
+      message: "User registered successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+    
   } catch (err) {
-    res.status(400).send({ message: "Error registering user" });
+    console.error('Registration error:', err);
+    
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(error => error.message);
+      return res.status(400).json({ message: messages[0] }); // Return first error message
+    }
+    
+    // Handle duplicate key errors (in case unique constraint fails)
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
+      return res.status(400).json({ 
+        message: `${fieldName} already exists. Please choose a different one.` 
+      });
+    }
+    
+    // Generic server error
+    res.status(500).json({ message: "Internal server error. Please try again." });
   }
 };
 
+
 //[SECTION] User authentication
 module.exports.loginUser = async (req, res) => {
-  const { email, password } = req.body;
   try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).send({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
+    
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).send({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
-    res.send({ message: "User logged in successfully" });
+    
+    // Generate JWT token
+    const token = auth.createAccessToken(user);
+    
+    res.json({ 
+      message: "User logged in successfully",
+      access: token 
+    });
+    
   } catch (err) {
-    res.status(400).send({ message: "Error logging in user" });
+    console.error('Login error:', err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
