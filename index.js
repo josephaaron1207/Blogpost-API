@@ -1,4 +1,3 @@
-// index.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -10,19 +9,13 @@ const postRoutes = require("./routes/post");
 const app = express();
 app.use(express.json());
 
-// Manual CORS fix
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.sendStatus(200);
-  next();
-});
+const corsOptions = {
+  origin: ["http://localhost:3000", "http://localhost:5173", "https://your-frontend.onrender.com"],
+  credentials: true,
+};
 
-// Debug route
-app.get("/", (req, res) => {
-  res.send("🚀 Backend is running!");
-});
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests
 
 // Routes
 app.use("/api/users", userRoutes);
@@ -35,9 +28,6 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
     const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
-  .catch(err => {
-    console.error("❌ MongoDB connection error:", err.message);
-    process.exit(1); // force crash so Render logs show error
-  });
+  .catch(err => console.error("❌ MongoDB connection error:", err));
 
 module.exports = { app, mongoose };
