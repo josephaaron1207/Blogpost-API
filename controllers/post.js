@@ -25,12 +25,16 @@ exports.getPost = async (req, res) => {
 
 exports.getMyPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ author: req.user.id });
+    const posts = await Post.find({ author: req.user.id })
+      .populate('author', 'firstName lastName email'); // fetch selected fields
+
     res.json(posts);
   } catch (err) {
+    console.error("Error fetching user's posts:", err);
     res.status(500).json({ message: "Error fetching user's posts" });
   }
 };
+
 
 // controllers/post.js
 exports.createPost = async (req, res) => {
