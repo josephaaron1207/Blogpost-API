@@ -3,30 +3,37 @@ const Post = require('../models/Post');
 
 exports.getPosts = async (req, res) => {
   try {
-    const posts = await Post.find(); // removed populate
-    res.send(posts);
+    const posts = await Post.find()
+      .populate('author', 'email'); // ✅ populate only email
+    res.json(posts);
   } catch (err) {
+    console.error("Error fetching posts:", err);
     res.status(500).json({ message: "Error fetching posts" });
   }
 };
 
+// Get single post with author email
 exports.getPost = async (req, res) => {
   try {
     const id = req.params.id;
-    const post = await Post.findById(id); // removed populate
+    const post = await Post.findById(id)
+      .populate('author', 'email'); // ✅ populate only email
+
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
-    res.send(post);
+    res.json(post);
   } catch (err) {
+    console.error("Error fetching post:", err);
     res.status(500).json({ message: "Error fetching post" });
   }
 };
 
+// Already populates author email for my-posts
 exports.getMyPosts = async (req, res) => {
   try {
     const posts = await Post.find({ author: req.user.id })
-      .populate('author', 'firstName lastName email'); // fetch selected fields
+      .populate('author', 'firstName lastName email');
 
     res.json(posts);
   } catch (err) {
