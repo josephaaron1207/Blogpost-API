@@ -2,18 +2,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-// Google Login
-const passport = require('passport');
-const session = require('express-session');
-// require('./passport');
 
 // [SECTION] Environment Setup
-// const port = 4000;
 require('dotenv').config();
 
 //[SECTION] Routes
 const userRoutes = require("./routes/user");
-const e = require("express");
 
 // [SECTION] Server Setup
 const app = express();
@@ -28,6 +22,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-console.log('Server is running on port 4000');
+app.listen(4000, () => {
+  console.log('Server is running on port 4000');
+});
 
 module.exports = { app, mongoose };
