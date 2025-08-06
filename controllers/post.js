@@ -32,20 +32,29 @@ exports.getMyPosts = async (req, res) => {
   }
 };
 
+// controllers/post.js
 exports.createPost = async (req, res) => {
   try {
     const { title, content } = req.body;
-    const post = new Post({ 
-      title, 
-      content, 
-      author: req.user.id 
+
+    if (!title || !content) {
+      return res.status(400).json({ message: "Title and content are required" });
+    }
+
+    const post = new Post({
+      title,
+      content,
+      author: req.user.id, // ✅ get author from verified token
     });
+
     await post.save();
     res.status(201).json({ message: 'Post created successfully', post });
   } catch (err) {
-    res.status(500).json({ message: "Error creating post" });
+    console.error('Error creating post:', err);
+    res.status(500).json({ message: 'Error creating post' });
   }
 };
+
 
 exports.updatePost = async (req, res) => {
   try {
