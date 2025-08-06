@@ -82,13 +82,27 @@ exports.deletePost = async (req, res) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Check ownership and role
+    const isOwner = post.author.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: "Not authorized to delete this post" });
     }
 
-    await Post.findByIdAndDelete(req.params.id);
-    res.json({ message: "Post deleted successfully" });
+    await post.deleteOne();
+
+    // Log who deleted
+    const deletedBy = isAdmin ? `Admin (${req.user.email || req.user.id})` 
+                              : `Owner (${req.user.email || req.user.id})`;
+
+    console.log(`✅ Post "${post.title}" deleted by ${deletedBy}`);
+
+    res.json({
+      message: `Post deleted successfully by ${isAdmin ? 'an admin' : 'the owner'}`,
+    });
   } catch (err) {
+    console.error("❌ Error deleting post:", err);
     res.status(500).json({ message: "Error deleting post" });
   }
 };
