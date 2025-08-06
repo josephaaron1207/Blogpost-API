@@ -2,8 +2,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-
-// [SECTION] Environment Setup
 require("dotenv").config();
 
 // [SECTION] Routes
@@ -11,10 +9,9 @@ const userRoutes = require("./routes/user");
 
 // [SECTION] Server Setup
 const app = express();
-
 app.use(express.json());
 
-
+// CORS setup
 const corsOptions = {
   origin: [
     "http://localhost:3000",             
@@ -24,13 +21,12 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
-
 app.use(cors(corsOptions));
 
 // [SECTION] API Routes
 app.use("/api/users", userRoutes);
 
-// Example posts route (add your real one if needed)
+// Example posts route
 app.get("/api/posts", (req, res) => {
   res.json([
     { id: 1, title: "First Post", content: "Hello world!" },
@@ -38,10 +34,18 @@ app.get("/api/posts", (req, res) => {
   ]);
 });
 
-// [SECTION] Start Server
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// [SECTION] Connect to DB & Start Server
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log("✅ MongoDB Connected");
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+})
+.catch(err => console.error("❌ MongoDB connection error:", err));
 
 module.exports = { app, mongoose };

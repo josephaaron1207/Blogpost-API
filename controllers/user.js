@@ -6,14 +6,17 @@ exports.registerUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ error: "Email already exists" });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
 
+    // Create new user
     const newUser = new User({ email, password });
     await newUser.save();
 
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "Registered successfully" });
   } catch (error) {
     res.status(500).json({ error: "Registration failed" });
   }
@@ -25,13 +28,17 @@ exports.loginUser = async (req, res) => {
 
     // Find user
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid email or password" });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
 
-    // Check password
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid email or password" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
 
-    // Create token
+    // Create JWT
     const token = jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
