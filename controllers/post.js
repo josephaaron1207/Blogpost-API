@@ -12,6 +12,15 @@ exports.getPost = async (req, res) => {
   res.send(post);
 };
 
+exports.getMyPosts = async (req, res) => {
+  try {
+    const posts = await Post.find({ author: req.user.id });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching user's posts" });
+  }
+};
+
 exports.createPost = async (req, res) => {
   const { title, content, author } = req.body;
   const post = new Post({ title, content, author });
@@ -27,18 +36,22 @@ exports.updatePost = async (req, res) => {
 };
 
 //[SECTION] Delete post
-module.exports.deletePost = async (req, res) => {
-    try {
-      const post = await Post.findById(req.params.postId);
-      if (!post) {
-        return res.status(404).send({ message: "Post not found" });
-      }
-      if (post.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-        return res.status(401).send({ message: "You are not authorized to delete this post" });
-      }
-      await post.remove();
-      res.send({ message: "Post deleted successfully" });
-    } catch (err) {
-      res.status(400).send({ message: "Error deleting post" });
+exports.deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
     }
-  };
+
+    // Only the author OR an admin can delete
+    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Not authorized to delete this post" });
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
+    res.json({ message: "Post deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting post" });
+  }
+};

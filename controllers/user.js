@@ -12,8 +12,11 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new user
-    const newUser = new User({ email, password });
+    const newUser = new User({ email, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({ message: "Registered successfully" });
@@ -21,6 +24,7 @@ exports.registerUser = async (req, res) => {
     res.status(500).json({ error: "Registration failed" });
   }
 };
+
 
 exports.loginUser = async (req, res) => {
   try {
